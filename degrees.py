@@ -4,9 +4,7 @@ import sys
 from util import Node, StackFrontier, QueueFrontier
 
 names = {}
-
 people = {}
-
 movies = {}
 
 
@@ -28,7 +26,7 @@ def load_data(directory):
         reader = csv.DictReader(f)
         for row in reader:
             movies[row["id"]] = {
-                "title": row["year"],
+                "title": row["title"],
                 "year": row["year"],
                 "stars": set()
             }
@@ -75,6 +73,9 @@ def main():
 
 
 def shortest_path(source, target):
+    if source == target:
+        return []
+    
     start = Node(state=source, parent=None, action=None)
     frontier = QueueFrontier()
     frontier.add(start)
@@ -83,19 +84,26 @@ def shortest_path(source, target):
     
     while not frontier.empty():
         node = frontier.remove()
-        if node.state == target:
-            path = []
-            while node.parent is not None:
-                path.append((node.action, node.state))
-                node = node.parent
-            return path[::-1]
-        
         explored.add(node.state)
         
         for movie_id, person_id in neighbors_for_person(node.state):
-            if person_id not in explored and not frontier.contains_state(person_id):
-                child = Node(state=person_id, parent=node, action=movie_id)
-                frontier.add(child)
+            if person_id in explored:
+                continue
+            
+            if frontier.contains_state(person_id):
+                continue
+            
+            child = Node(state=person_id, parent=node, action=movie_id)
+            
+            if person_id == target:
+                path = []
+                current = child
+                while current.parent is not None:
+                    path.append((current.action, current.state))
+                    current = current.parent
+                return path[::-1]
+            
+            frontier.add(child)
     
     return None
 
@@ -126,8 +134,9 @@ def neighbors_for_person(person_id):
     movie_ids = people[person_id]["movies"]
     neighbors = set()
     for movie_id in movie_ids:
-        for person_id in movies[movie_id]["stars"]:
-            neighbors.add((movie_id, person_id))
+        for star_id in movies[movie_id]["stars"]:
+            if star_id != person_id:
+                neighbors.add((movie_id, star_id))
     return neighbors
 
 
